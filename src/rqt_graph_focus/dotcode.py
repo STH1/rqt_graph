@@ -772,6 +772,8 @@ class RosGraphDotcodeGenerator:
             ranksep=ranksep,
             simplify=simplify,
             rankdir=orientation)
+        # Use polyline splines to avoid graphviz triangulation bugs on ARM
+        dotgraph.set_splines('polyline')
 
         ACTION_TOPICS_SUFFIX = '/action_topics'
         IMAGE_TOPICS_SUFFIX = '/image_topics'
