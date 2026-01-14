@@ -952,5 +952,24 @@ class RosGraphDotcodeGenerator:
             group_tf_nodes=group_tf_nodes,
             group_image_nodes=group_image_nodes,
             hide_dynamic_reconfigure=hide_dynamic_reconfigure)
-        dotcode = dotcode_factory.create_dot(dotgraph)
+        # Debug: Log dotcode before processing
+        try:
+            dotcode = dotcode_factory.create_dot(dotgraph)
+        except AssertionError as e:
+            # Get the raw DOT code for debugging
+            import tempfile
+            import subprocess
+            raw_dot = dotgraph.to_string()
+            print("=== DEBUG: Raw DOT code ===")
+            print(raw_dot)
+            print("=== END DOT code ===")
+            # Try to get actual error from graphviz
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as f:
+                f.write(raw_dot)
+                tmpfile = f.name
+            result = subprocess.run(['dot', '-Tdot', tmpfile], capture_output=True)
+            print("=== DEBUG: graphviz stderr ===")
+            print(result.stderr.decode())
+            print("=== END graphviz stderr ===")
+            raise
         return dotcode
