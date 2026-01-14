@@ -71,14 +71,21 @@ def _conv(n):
         return 'n_' + n
 
 
-def matches_any(name, patternlist):
+def matches_any(name, patternlist, debug=False):
     if patternlist is None or len(patternlist) == 0:
         return False
     for pattern in patternlist:
+        # Check exact match first
         if unicode(name).strip() == pattern:
+            if debug:
+                _logger.debug(f'matches_any: "{name}" exact match with "{pattern}"')
             return True
+        # Check if pattern contains regex special chars
         if re.match("^[a-zA-Z0-9_/]+$", pattern) is None:
+            # Pattern has special chars, use regex
             if re.match(unicode(pattern), name.strip()) is not None:
+                if debug:
+                    _logger.debug(f'matches_any: "{name}" regex match with "{pattern}"')
                 return True
     return False
 
@@ -748,6 +755,11 @@ class RosGraphDotcodeGenerator:
         includes, excludes = self._split_filter_string(ns_filter)
         topic_includes, topic_excludes = self._split_filter_string(topic_filter)
 
+        _logger.debug(f'Filter ns_filter: {ns_filter}')
+        _logger.debug(f'Filter includes: {includes}')
+        _logger.debug(f'Filter topic_filter: {topic_filter}')
+        _logger.debug(f'Filter topic_includes: {topic_includes}')
+
         # create the node definitions
         nn_nodes = [
             n for n in rosgraphinst.nn_nodes
@@ -757,6 +769,8 @@ class RosGraphDotcodeGenerator:
             n for n in rosgraphinst.nt_nodes
             if matches_any(n, topic_includes) and not matches_any(n, topic_excludes)
         ]
+        _logger.debug(f'Filtered nn_nodes ({len(nn_nodes)}): {nn_nodes[:5]}...' if len(nn_nodes) > 5 else f'Filtered nn_nodes: {nn_nodes}')
+        _logger.debug(f'Filtered nt_nodes ({len(nt_nodes)}): {nt_nodes[:5]}...' if len(nt_nodes) > 5 else f'Filtered nt_nodes: {nt_nodes}')
 
         # create the edge definitions, unwrap EdgeList objects into python lists
         if graph_mode == NODE_TOPIC_GRAPH:

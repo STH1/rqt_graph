@@ -524,7 +524,11 @@ class RosGraph(Plugin):
         connected_topics = set()
 
         if self._graph is None:
+            self._logger.warning('_get_connected_elements: graph is None')
             return connected_nodes, connected_topics
+
+        self._logger.info(f'_get_connected_elements: item_name="{item_name}", item_type={item_type}')
+        self._logger.debug(f'Available nn_nodes: {list(self._graph.nn_nodes)[:10]}...')
 
         if item_type == 'node':
             # Add the focused node itself
@@ -548,6 +552,9 @@ class RosGraph(Plugin):
                 elif edge.end == item_name:
                     connected_nodes.add(edge.start)
 
+            self._logger.info(f'Connected nodes for "{item_name}": {connected_nodes}')
+            self._logger.info(f'Connected topics for "{item_name}": {connected_topics}')
+
         elif item_type == 'topic':
             topic_node_name = ' ' + item_name  # Topic nodes have space prefix
             connected_topics.add(item_name)
@@ -559,6 +566,16 @@ class RosGraph(Plugin):
                         connected_nodes.add(edge.end)
                     else:
                         connected_nodes.add(edge.start)
+
+            self._logger.info(f'Connected nodes for topic "{item_name}": {connected_nodes}')
+
+        # Check if item_name matches any node in the graph
+        if item_type == 'node' and item_name not in self._graph.nn_nodes:
+            self._logger.warning(f'item_name "{item_name}" NOT found in nn_nodes!')
+            # Try to find similar names
+            similar = [n for n in self._graph.nn_nodes if item_name in n or n in item_name]
+            if similar:
+                self._logger.warning(f'Similar node names found: {similar[:5]}')
 
         return connected_nodes, connected_topics
 
