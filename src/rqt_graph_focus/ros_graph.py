@@ -519,43 +519,65 @@ class RosGraph(Plugin):
         self._clear_connection_list()
 
     def _get_connected_elements(self, item_name, item_type):
-        """Get all nodes and topics directly connected to the given item."""
+        """Get all nodes and topics directly connected to the given item.
+
+        Excludes common ROS topics like /clock, /parameter_events, /rosout
+        to avoid showing nearly all nodes in the system.
+        """
         connected_nodes = set()
         connected_topics = set()
+
+        # Common topics that connect nearly all nodes - exclude from focus filter
+        EXCLUDED_TOPICS = {
+            '/clock', '/parameter_events', '/rosout',
+            '/tf', '/tf_static', '/diagnostics'
+        }
 
         if self._graph is None:
             self._logger.warning('_get_connected_elements: graph is None')
             return connected_nodes, connected_topics
 
         self._logger.info(f'_get_connected_elements: item_name="{item_name}", item_type={item_type}')
-        self._logger.debug(f'Available nn_nodes: {list(self._graph.nn_nodes)[:10]}...')
 
         if item_type == 'node':
             # Add the focused node itself
             connected_nodes.add(item_name)
 
             # Find all topics this node publishes to or subscribes from
+            # (excluding common topics)
             for edge in self._graph.nt_edges:
                 if edge.start == item_name:
                     # Node publishes to topic (edge.end is topic with space prefix)
                     topic = edge.end[1:] if edge.end.startswith(' ') else edge.end
-                    connected_topics.add(topic)
+                    if topic not in EXCLUDED_TOPICS:
+                        connected_topics.add(topic)
                 elif edge.end == item_name:
                     # Node subscribes to topic (edge.start is topic with space prefix)
                     topic = edge.start[1:] if edge.start.startswith(' ') else edge.start
-                    connected_topics.add(topic)
+                    if topic not in EXCLUDED_TOPICS:
+                        connected_topics.add(topic)
 
-            # Also find nodes connected via topics (for node-node graph mode)
-            for edge in self._graph.nn_edges:
-                if edge.start == item_name:
-                    connected_nodes.add(edge.end)
-                elif edge.end == item_name:
-                    connected_nodes.add(edge.start)
+            # Find nodes that share the same non-excluded topics
+            # (more selective than using nn_edges which includes all indirect connections)
+            topic_node_names = {' ' + t for t in connected_topics}  # Add space prefix
+            for edge in self._graph.nt_edges:
+                topic_name = edge.end if edge.end.startswith(' ') else edge.start
+                if topic_name in topic_node_names:
+                    # Add the node end of this edge
+                    if edge.start.startswith(' '):
+                        connected_nodes.add(edge.end)
+                    else:
+                        connected_nodes.add(edge.start)
 
-            self._logger.info(f'Connected nodes for "{item_name}": {connected_nodes}')
-            self._logger.info(f'Connected topics for "{item_name}": {connected_topics}')
+            self._logger.info(f'Connected nodes for "{item_name}" (count={len(connected_nodes)}): {list(connected_nodes)[:10]}...')
+            self._logger.info(f'Connected topics for "{item_name}" (count={len(connected_topics)}): {list(connected_topics)[:10]}...')
 
         elif item_type == 'topic':
+            # For excluded topics, don't filter (would show too many nodes)
+            if item_name in EXCLUDED_TOPICS:
+                self._logger.info(f'Topic "{item_name}" is in excluded list, showing all')
+                return connected_nodes, connected_topics
+
             topic_node_name = ' ' + item_name  # Topic nodes have space prefix
             connected_topics.add(item_name)
 
@@ -567,7 +589,7 @@ class RosGraph(Plugin):
                     else:
                         connected_nodes.add(edge.start)
 
-            self._logger.info(f'Connected nodes for topic "{item_name}": {connected_nodes}')
+            self._logger.info(f'Connected nodes for topic "{item_name}" (count={len(connected_nodes)}): {list(connected_nodes)[:10]}...')
 
         # Check if item_name matches any node in the graph
         if item_type == 'node' and item_name not in self._graph.nn_nodes:
