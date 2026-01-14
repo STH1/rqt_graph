@@ -111,6 +111,7 @@ class RosGraph(Plugin):
         super(RosGraph, self).__init__(context)
         self._node = context.node
         self._logger = self._node.get_logger().get_child('rqt_graph_focus.ros_graph.RosGraph')
+        self._logger.info('RosGraph plugin initializing...')
         self.initialized = False
         self.setObjectName('RosGraph')
 
@@ -205,11 +206,13 @@ class RosGraph(Plugin):
         self._widget.subscribers_list.itemDoubleClicked.connect(
             self._on_list_item_double_clicked)
 
+        self._logger.info('RosGraph plugin initialized, updating graph...')
         self._update_rosgraph()
         self._deferred_fit_in_view.connect(self._fit_in_view, Qt.QueuedConnection)
         self._deferred_fit_in_view.emit()
 
         context.add_widget(self._widget)
+        self._logger.info('RosGraph plugin ready')
 
     def save_settings(self, plugin_settings, instance_settings):
         instance_settings.set_value(
@@ -318,8 +321,11 @@ class RosGraph(Plugin):
 
         # Apply focus filter if active
         if self._focused_item:
+            self._logger.debug(f'Generating dotcode with focus: {self._focused_item} ({self._focused_item_type})')
             connected_nodes, connected_topics = self._get_connected_elements(
                 self._focused_item, self._focused_item_type)
+            self._logger.debug(f'Connected nodes: {connected_nodes}')
+            self._logger.debug(f'Connected topics: {connected_topics}')
             if connected_nodes:
                 # Use exact regex matches to avoid prefix-matching
                 # (e.g., /camera-left should not match /camera-left-depth)
@@ -327,6 +333,7 @@ class RosGraph(Plugin):
             if connected_topics:
                 # Use exact regex matches for topics too
                 topic_filter = ','.join('^' + re.escape(t) + '$' for t in connected_topics)
+            self._logger.debug(f'Applied filters - ns: {ns_filter}, topic: {topic_filter}')
 
         graph_mode = self._widget.graph_type_combo_box.itemData(
             self._widget.graph_type_combo_box.currentIndex())
@@ -484,7 +491,9 @@ class RosGraph(Plugin):
 
     def _on_item_clicked(self, url):
         """Handle click on a graph item to focus on it."""
+        self._logger.info(f'Item clicked: url={url}')
         if not url:
+            self._logger.debug('Empty URL, ignoring click')
             return
 
         # Parse URL format - can be 'topic:/name' or just '/name' for nodes
@@ -496,6 +505,7 @@ class RosGraph(Plugin):
             self._focused_item = url.split(' ')[0] if ' ' in url else url
             self._focused_item_type = 'node'
 
+        self._logger.info(f'Focus set: item={self._focused_item}, type={self._focused_item_type}')
         self._widget.clear_focus_button.setEnabled(True)
         self._refresh_rosgraph()
         self._update_connection_list()

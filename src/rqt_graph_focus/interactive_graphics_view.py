@@ -29,6 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import division
+import logging
 
 from python_qt_binding.QtCore import QPointF, QRectF, Qt, Signal
 from python_qt_binding.QtGui import QTransform
@@ -36,6 +37,9 @@ from python_qt_binding.QtWidgets import QGraphicsView
 
 # Threshold in pixels to distinguish click from drag
 CLICK_THRESHOLD = 5
+
+# Module logger
+_logger = logging.getLogger('rqt_graph_focus.interactive_graphics_view')
 
 
 class InteractiveGraphicsView(QGraphicsView):
@@ -46,6 +50,7 @@ class InteractiveGraphicsView(QGraphicsView):
     def __init__(self, parent=None):
         super(InteractiveGraphicsView, self).__init__(parent)
         self.setObjectName('InteractiveGraphicsView')
+        _logger.debug('InteractiveGraphicsView initialized')
 
         self._last_pan_point = None
         self._last_scene_center = None
@@ -76,16 +81,20 @@ class InteractiveGraphicsView(QGraphicsView):
         """Find URL from any item at the given scene position."""
         scene = self.scene()
         if not scene:
+            _logger.debug('No scene available')
             return None
 
         # Get all items at this position
         items = scene.items(scene_pos)
+        _logger.debug(f'Found {len(items)} items at position {scene_pos}')
 
         # Search through all items and their parents for a URL
         for item in items:
             url = self._extract_url_from_item(item)
             if url:
+                _logger.info(f'Found URL: {url}')
                 return url
+        _logger.debug('No URL found in any item')
         return None
 
     def _extract_url_from_item(self, item):

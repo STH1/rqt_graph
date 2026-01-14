@@ -34,11 +34,15 @@
 
 import re
 import copy
+import logging
 
 from rqt_graph_focus import rosgraph2_impl
 import math
 
 import pydot
+
+# Module logger
+_logger = logging.getLogger('rqt_graph_focus.dotcode')
 
 try:
     unicode
@@ -311,9 +315,17 @@ class RosGraphDotcodeGenerator:
 
         # Set penwidth directly on the node (not supported as add_node_to_graph parameter)
         if selected_penwidth:
-            pydot_node = dotgraph.get_node(_conv(node))
+            node_name = _conv(node)
+            pydot_node = dotgraph.get_node(node_name)
+            _logger.debug(f'Setting penwidth for node {node_name}: pydot_node={pydot_node}')
             if pydot_node:
                 pydot_node[0].set_penwidth(selected_penwidth)
+            else:
+                # Try with quotes
+                pydot_node = dotgraph.get_node(f'"{node_name}"')
+                if pydot_node:
+                    pydot_node[0].set_penwidth(selected_penwidth)
+                    _logger.debug(f'Set penwidth using quoted name')
 
     def _add_topic_node(self, node, rosgraphinst, dotcode_factory, dotgraph, quiet):
         label = rosgraph2_impl.node_topic(node)
@@ -349,9 +361,17 @@ class RosGraphDotcodeGenerator:
 
         # Set penwidth directly on the node (not supported as add_node_to_graph parameter)
         if penwidth:
-            pydot_node = dotgraph.get_node(_conv(node))
+            node_name = _conv(node)
+            pydot_node = dotgraph.get_node(node_name)
+            _logger.debug(f'Setting penwidth for topic {node_name}: pydot_node={pydot_node}')
             if pydot_node:
                 pydot_node[0].set_penwidth(penwidth)
+            else:
+                # Try with quotes
+                pydot_node = dotgraph.get_node(f'"{node_name}"')
+                if pydot_node:
+                    pydot_node[0].set_penwidth(penwidth)
+                    _logger.debug(f'Set penwidth using quoted name')
 
     def _add_topic_node_group(self, node, dotcode_factory, dotgraph, quiet):
         label = rosgraph2_impl.node_topic(node)
@@ -805,9 +825,9 @@ class RosGraphDotcodeGenerator:
             ranksep=ranksep,
             simplify=simplify,
             rankdir=orientation)
-        # Use 'ortho' for clean right-angle edges, or 'true'/'spline' for curved
-        # Note: 'polyline' can cause triangulation bugs on some ARM systems
-        dotgraph.set_splines('ortho')
+        # Use 'spline' for curved edges (default graphviz behavior)
+        # Note: 'polyline'/'ortho' can cause issues on some systems
+        dotgraph.set_splines('spline')
 
         ACTION_TOPICS_SUFFIX = '/action_topics'
         IMAGE_TOPICS_SUFFIX = '/image_topics'
@@ -992,24 +1012,25 @@ class RosGraphDotcodeGenerator:
             hide_dynamic_reconfigure=hide_dynamic_reconfigure,
             selected_item=selected_item,
             selected_item_type=selected_item_type)
-        # Debug: Log dotcode before processing
+        # Generate DOT code with error handling
         try:
             dotcode = dotcode_factory.create_dot(dotgraph)
-        except AssertionError as e:
+            _logger.debug('DOT code generated successfully')
+        except Exception as e:
             # Get the raw DOT code for debugging
             import tempfile
             import subprocess
             raw_dot = dotgraph.to_string()
-            print("=== DEBUG: Raw DOT code ===")
-            print(raw_dot)
-            print("=== END DOT code ===")
+            _logger.error(f'Failed to create DOT code: {e}')
+            _logger.error(f'Raw DOT code:\n{raw_dot}')
             # Try to get actual error from graphviz
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as f:
-                f.write(raw_dot)
-                tmpfile = f.name
-            result = subprocess.run(['dot', '-Tdot', tmpfile], capture_output=True)
-            print("=== DEBUG: graphviz stderr ===")
-            print(result.stderr.decode())
-            print("=== END graphviz stderr ===")
+            try:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as f:
+                    f.write(raw_dot)
+                    tmpfile = f.name
+                result = subprocess.run(['dot', '-Tdot', tmpfile], capture_output=True)
+                _logger.error(f'Graphviz stderr: {result.stderr.decode()}')
+            except Exception as e2:
+                _logger.error(f'Failed to get graphviz error: {e2}')
             raise
         return dotcode
