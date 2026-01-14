@@ -805,8 +805,9 @@ class RosGraphDotcodeGenerator:
             ranksep=ranksep,
             simplify=simplify,
             rankdir=orientation)
-        # Disable splines to avoid graphviz triangulation bugs on ARM
-        dotgraph.set_splines('false')
+        # Use 'ortho' for clean right-angle edges, or 'true'/'spline' for curved
+        # Note: 'polyline' can cause triangulation bugs on some ARM systems
+        dotgraph.set_splines('ortho')
 
         ACTION_TOPICS_SUFFIX = '/action_topics'
         IMAGE_TOPICS_SUFFIX = '/image_topics'

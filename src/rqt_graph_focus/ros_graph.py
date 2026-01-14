@@ -30,6 +30,7 @@
 
 from __future__ import division
 import os
+import re
 
 from ament_index_python import get_resource
 from python_qt_binding import loadUi
@@ -320,9 +321,12 @@ class RosGraph(Plugin):
             connected_nodes, connected_topics = self._get_connected_elements(
                 self._focused_item, self._focused_item_type)
             if connected_nodes:
-                ns_filter = ','.join(connected_nodes)
+                # Use exact regex matches to avoid prefix-matching
+                # (e.g., /camera-left should not match /camera-left-depth)
+                ns_filter = ','.join('^' + re.escape(n) + '$' for n in connected_nodes)
             if connected_topics:
-                topic_filter = ','.join(connected_topics)
+                # Use exact regex matches for topics too
+                topic_filter = ','.join('^' + re.escape(t) + '$' for t in connected_topics)
 
         graph_mode = self._widget.graph_type_combo_box.itemData(
             self._widget.graph_type_combo_box.currentIndex())
