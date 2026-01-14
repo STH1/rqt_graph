@@ -96,6 +96,8 @@ class RosGraphDotcodeGenerator:
 
     def __init__(self, node):
         self._node = node
+        self._selected_item = None
+        self._selected_item_type = None
 
     def _get_max_traffic(self):
         traffic = 10000  # start at 10kb
@@ -265,6 +267,10 @@ class RosGraphDotcodeGenerator:
         return s
 
     def _add_node(self, node, rosgraphinst, dotcode_factory, dotgraph, unreachable):
+        # Check if this node is selected
+        is_selected = (self._selected_item == node and self._selected_item_type == 'node')
+        selected_attrs = {'penwidth': 3, 'color': 'blue'} if is_selected else {}
+
         if node in rosgraphinst.bad_nodes:
             if unreachable:
                 return ''
@@ -276,7 +282,8 @@ class RosGraphDotcodeGenerator:
                     nodelabel=node,
                     shape="ellipse",
                     url=node + " (DEAD)",
-                    color="red")
+                    color=selected_attrs.get('color', 'red'),
+                    penwidth=selected_attrs.get('penwidth', 1))
             elif bn.type == rosgraph2_impl.BadNode.WONKY:
                 dotcode_factory.add_node_to_graph(
                     dotgraph,
@@ -284,7 +291,8 @@ class RosGraphDotcodeGenerator:
                     nodelabel=node,
                     shape="ellipse",
                     url=node + " (WONKY)",
-                    color="orange")
+                    color=selected_attrs.get('color', 'orange'),
+                    penwidth=selected_attrs.get('penwidth', 1))
             else:
                 dotcode_factory.add_node_to_graph(
                     dotgraph,
@@ -292,21 +300,32 @@ class RosGraphDotcodeGenerator:
                     nodelabel=node,
                     shape="ellipse",
                     url=node + " (UNKNOWN)",
-                    color="red")
+                    color=selected_attrs.get('color', 'red'),
+                    penwidth=selected_attrs.get('penwidth', 1))
         else:
             dotcode_factory.add_node_to_graph(
                 dotgraph,
                 nodename=_conv(node),
                 nodelabel=node,
                 shape='ellipse',
-                url=node)
+                url=node,
+                **selected_attrs)
 
     def _add_topic_node(self, node, rosgraphinst, dotcode_factory, dotgraph, quiet):
         label = rosgraph2_impl.node_topic(node)
         color = None
+        penwidth = None
         tooltip = None
+
+        # Check if this topic is selected
+        is_selected = (self._selected_item == label and self._selected_item_type == 'topic')
+        if is_selected:
+            color = 'blue'
+            penwidth = 3
+
         if label in rosgraphinst.topic_with_qos_incompatibility:
-            color = 'red'
+            if not is_selected:
+                color = 'red'
             tooltip_split = ['Found qos incompatibilities:', '']
             tooltip_split.extend([
                 f'- Publisher of node `{pub_node}` '
@@ -322,6 +341,7 @@ class RosGraphDotcodeGenerator:
             shape='box',
             url="topic:%s" % label,
             color=color,
+            penwidth=penwidth,
             tooltip=tooltip)
 
     def _add_topic_node_group(self, node, dotcode_factory, dotgraph, quiet):
@@ -688,10 +708,14 @@ class RosGraphDotcodeGenerator:
         group_tf_nodes=False,
         hide_tf_nodes=False,
         group_image_nodes=False,
-            hide_dynamic_reconfigure=False):
+        hide_dynamic_reconfigure=False,
+        selected_item=None,
+        selected_item_type=None):
         """
         See generate_dotcode
         """
+        self._selected_item = selected_item
+        self._selected_item_type = selected_item_type
         includes, excludes = self._split_filter_string(ns_filter)
         topic_includes, topic_excludes = self._split_filter_string(topic_filter)
 
@@ -912,7 +936,9 @@ class RosGraphDotcodeGenerator:
         hide_tf_nodes=False,
         group_tf_nodes=False,
         group_image_nodes=False,
-            hide_dynamic_reconfigure=False):
+        hide_dynamic_reconfigure=False,
+        selected_item=None,
+        selected_item_type=None):
         """
         @param rosgraphinst: RosGraph instance
         @param ns_filter: nodename filter
@@ -953,7 +979,9 @@ class RosGraphDotcodeGenerator:
             hide_tf_nodes=hide_tf_nodes,
             group_tf_nodes=group_tf_nodes,
             group_image_nodes=group_image_nodes,
-            hide_dynamic_reconfigure=hide_dynamic_reconfigure)
+            hide_dynamic_reconfigure=hide_dynamic_reconfigure,
+            selected_item=selected_item,
+            selected_item_type=selected_item_type)
         # Debug: Log dotcode before processing
         try:
             dotcode = dotcode_factory.create_dot(dotgraph)

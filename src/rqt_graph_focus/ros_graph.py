@@ -354,7 +354,9 @@ class RosGraph(Plugin):
             group_tf_nodes=group_tf_nodes,
             hide_tf_nodes=hide_tf_nodes,
             group_image_nodes=group_image_nodes,
-            hide_dynamic_reconfigure=hide_dynamic_reconfigure)
+            hide_dynamic_reconfigure=hide_dynamic_reconfigure,
+            selected_item=self._focused_item,
+            selected_item_type=self._focused_item_type)
 
     def _update_graph_view(self, dotcode):
         if dotcode == self._current_dotcode:
