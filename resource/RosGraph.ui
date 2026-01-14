@@ -392,13 +392,88 @@
     </widget>
    </item>
    <item>
-    <widget class="InteractiveGraphicsView" name="graphics_view">
-     <property name="renderHints">
-      <set>QPainter::Antialiasing|QPainter::HighQualityAntialiasing|QPainter::SmoothPixmapTransform|QPainter::TextAntialiasing</set>
+    <widget class="QSplitter" name="main_splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
-     <property name="resizeAnchor">
-      <enum>QGraphicsView::AnchorViewCenter</enum>
-     </property>
+     <widget class="InteractiveGraphicsView" name="graphics_view">
+      <property name="renderHints">
+       <set>QPainter::Antialiasing|QPainter::HighQualityAntialiasing|QPainter::SmoothPixmapTransform|QPainter::TextAntialiasing</set>
+      </property>
+      <property name="resizeAnchor">
+       <enum>QGraphicsView::AnchorViewCenter</enum>
+      </property>
+     </widget>
+     <widget class="QWidget" name="connection_panel">
+      <property name="minimumSize">
+       <size>
+        <width>200</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>400</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <layout class="QVBoxLayout" name="connection_panel_layout">
+       <item>
+        <widget class="QLabel" name="selected_item_label">
+         <property name="text">
+          <string>No selection</string>
+         </property>
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="clear_focus_button">
+         <property name="text">
+          <string>Clear Focus</string>
+         </property>
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="publishers_header">
+         <property name="text">
+          <string>Publishers:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="publishers_list">
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="subscribers_header">
+         <property name="text">
+          <string>Subscribers:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="subscribers_list">
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
@@ -407,7 +482,7 @@
   <customwidget>
    <class>InteractiveGraphicsView</class>
    <extends>QGraphicsView</extends>
-   <header>rqt_graph.interactive_graphics_view</header>
+   <header>rqt_graph_focus.interactive_graphics_view</header>
   </customwidget>
  </customwidgets>
  <resources/>

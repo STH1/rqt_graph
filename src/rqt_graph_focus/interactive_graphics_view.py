@@ -30,12 +30,18 @@
 
 from __future__ import division
 
-from python_qt_binding.QtCore import QPointF, QRectF, Qt
+from python_qt_binding.QtCore import QPointF, QRectF, Qt, Signal
 from python_qt_binding.QtGui import QTransform
 from python_qt_binding.QtWidgets import QGraphicsView
 
+# Threshold in pixels to distinguish click from drag
+CLICK_THRESHOLD = 5
+
 
 class InteractiveGraphicsView(QGraphicsView):
+
+    # Signal emitted when an item is clicked (not dragged)
+    item_clicked = Signal(str)
 
     def __init__(self, parent=None):
         super(InteractiveGraphicsView, self).__init__(parent)
@@ -43,15 +49,42 @@ class InteractiveGraphicsView(QGraphicsView):
 
         self._last_pan_point = None
         self._last_scene_center = None
+        self._press_pos = None
 
     def mousePressEvent(self, mouse_event):
+        self._press_pos = mouse_event.pos()
         self._last_pan_point = mouse_event.pos()
         self._last_scene_center = self._map_to_scene_f(QRectF(self.frameRect()).center())
         self.setCursor(Qt.ClosedHandCursor)
 
     def mouseReleaseEvent(self, mouse_event):
+        # Check if this was a click (minimal movement) vs a drag
+        if self._press_pos is not None:
+            delta = mouse_event.pos() - self._press_pos
+            if delta.manhattanLength() < CLICK_THRESHOLD:
+                # This was a click - find item at position
+                scene_pos = self.mapToScene(mouse_event.pos())
+                item = self.scene().itemAt(scene_pos, self.transform())
+                if item:
+                    url = self._extract_url(item)
+                    if url:
+                        self.item_clicked.emit(url)
+
         self.setCursor(Qt.OpenHandCursor)
         self._last_pan_point = None
+        self._press_pos = None
+
+    def _extract_url(self, item):
+        """Extract URL from graphics item or its parent."""
+        current = item
+        while current:
+            # Try toolTip first (qt_dotgraph often stores URL there)
+            tooltip = current.toolTip()
+            if tooltip and ('/' in tooltip or ':' in tooltip):
+                return tooltip
+            # Try parent item
+            current = current.parentItem()
+        return None
 
     def mouseMoveEvent(self, mouse_event):
         if self._last_pan_point is not None:

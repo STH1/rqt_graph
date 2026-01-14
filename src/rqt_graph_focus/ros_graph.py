@@ -38,7 +38,7 @@ from python_qt_binding.QtGui import QIcon, QImage, QPainter
 from python_qt_binding.QtWidgets import QCompleter, QFileDialog, QGraphicsScene, QWidget
 from python_qt_binding.QtSvg import QSvgGenerator
 
-from rqt_graph.rosgraph2_impl import Graph
+from rqt_graph_focus.rosgraph2_impl import Graph
 
 from qt_dotgraph.dot_to_qt import DotToQtGenerator
 # pydot requires some hacks
@@ -109,12 +109,16 @@ class RosGraph(Plugin):
     def __init__(self, context):
         super(RosGraph, self).__init__(context)
         self._node = context.node
-        self._logger = self._node.get_logger().get_child('rqt_graph.ros_graph.RosGraph')
+        self._logger = self._node.get_logger().get_child('rqt_graph_focus.ros_graph.RosGraph')
         self.initialized = False
         self.setObjectName('RosGraph')
 
         self._graph = None
         self._current_dotcode = None
+
+        # Focus state for click-to-focus feature
+        self._focused_item = None       # Name of focused element
+        self._focused_item_type = None  # 'node' or 'topic'
 
         self._widget = QWidget()
 
@@ -126,8 +130,8 @@ class RosGraph(Plugin):
         # dot_to_qt transforms into Qt elements using dot layout
         self.dot_to_qt = DotToQtGenerator()
 
-        _, package_path = get_resource('packages', 'rqt_graph')
-        ui_file = os.path.join(package_path, 'share', 'rqt_graph', 'resource', 'RosGraph.ui')
+        _, package_path = get_resource('packages', 'rqt_graph_focus')
+        ui_file = os.path.join(package_path, 'share', 'rqt_graph_focus', 'resource', 'RosGraph.ui')
         loadUi(ui_file, self._widget, {'InteractiveGraphicsView': InteractiveGraphicsView})
         self._widget.setObjectName('RosGraphUi')
         if context.serial_number() > 1:
@@ -190,6 +194,16 @@ class RosGraph(Plugin):
         self._widget.save_as_image_push_button.setIcon(QIcon.fromTheme('image'))
         self._widget.save_as_image_push_button.pressed.connect(self._save_image)
 
+        # Connect click-to-focus signals
+        self._widget.graphics_view.item_clicked.connect(self._on_item_clicked)
+        self._widget.clear_focus_button.clicked.connect(self._clear_focus)
+
+        # Connect list item double-click for navigation
+        self._widget.publishers_list.itemDoubleClicked.connect(
+            self._on_list_item_double_clicked)
+        self._widget.subscribers_list.itemDoubleClicked.connect(
+            self._on_list_item_double_clicked)
+
         self._update_rosgraph()
         self._deferred_fit_in_view.connect(self._fit_in_view, Qt.QueuedConnection)
         self._deferred_fit_in_view.emit()
@@ -228,6 +242,8 @@ class RosGraph(Plugin):
         instance_settings.set_value(
             'hide_dynamic_reconfigure_check_box_state',
             self._widget.hide_dynamic_reconfigure_check_box.isChecked())
+        instance_settings.set_value(
+            'main_splitter_state', self._widget.main_splitter.saveState())
 
     def restore_settings(self, plugin_settings, instance_settings):
         self._widget.graph_type_combo_box.setCurrentIndex(
@@ -261,6 +277,9 @@ class RosGraph(Plugin):
         self._widget.hide_dynamic_reconfigure_check_box.setChecked(
             instance_settings.value('hide_dynamic_reconfigure_check_box_state', True) in
             [True, 'true'])
+        splitter_state = instance_settings.value('main_splitter_state', None)
+        if splitter_state is not None:
+            self._widget.main_splitter.restoreState(splitter_state)
         self.initialized = True
         self._refresh_rosgraph()
 
@@ -295,6 +314,16 @@ class RosGraph(Plugin):
     def _generate_dotcode(self):
         ns_filter = self._widget.filter_line_edit.text()
         topic_filter = self._widget.topic_filter_line_edit.text()
+
+        # Apply focus filter if active
+        if self._focused_item:
+            connected_nodes, connected_topics = self._get_connected_elements(
+                self._focused_item, self._focused_item_type)
+            if connected_nodes:
+                ns_filter = ','.join(connected_nodes)
+            if connected_topics:
+                topic_filter = ','.join(connected_topics)
+
         graph_mode = self._widget.graph_type_combo_box.itemData(
             self._widget.graph_type_combo_box.currentIndex())
         orientation = 'LR'
@@ -446,3 +475,173 @@ class RosGraph(Plugin):
         self._scene.render(painter)
         painter.end()
         img.save(file_name)
+
+    def _on_item_clicked(self, url):
+        """Handle click on a graph item to focus on it."""
+        if not url:
+            return
+
+        # Parse URL format - can be 'topic:/name' or just '/name' for nodes
+        if url.startswith('topic:'):
+            self._focused_item = url[6:]  # Remove 'topic:' prefix
+            self._focused_item_type = 'topic'
+        else:
+            # Handle node URLs, remove status suffix like ' (DEAD)'
+            self._focused_item = url.split(' ')[0] if ' ' in url else url
+            self._focused_item_type = 'node'
+
+        self._widget.clear_focus_button.setEnabled(True)
+        self._refresh_rosgraph()
+        self._update_connection_list()
+
+    def _clear_focus(self):
+        """Clear the focus filter and show full graph."""
+        self._focused_item = None
+        self._focused_item_type = None
+        self._widget.clear_focus_button.setEnabled(False)
+        self._refresh_rosgraph()
+        self._clear_connection_list()
+
+    def _get_connected_elements(self, item_name, item_type):
+        """Get all nodes and topics directly connected to the given item."""
+        connected_nodes = set()
+        connected_topics = set()
+
+        if self._graph is None:
+            return connected_nodes, connected_topics
+
+        if item_type == 'node':
+            # Add the focused node itself
+            connected_nodes.add(item_name)
+
+            # Find all topics this node publishes to or subscribes from
+            for edge in self._graph.nt_edges:
+                if edge.start == item_name:
+                    # Node publishes to topic (edge.end is topic with space prefix)
+                    topic = edge.end[1:] if edge.end.startswith(' ') else edge.end
+                    connected_topics.add(topic)
+                elif edge.end == item_name:
+                    # Node subscribes to topic (edge.start is topic with space prefix)
+                    topic = edge.start[1:] if edge.start.startswith(' ') else edge.start
+                    connected_topics.add(topic)
+
+            # Also find nodes connected via topics (for node-node graph mode)
+            for edge in self._graph.nn_edges:
+                if edge.start == item_name:
+                    connected_nodes.add(edge.end)
+                elif edge.end == item_name:
+                    connected_nodes.add(edge.start)
+
+        elif item_type == 'topic':
+            topic_node_name = ' ' + item_name  # Topic nodes have space prefix
+            connected_topics.add(item_name)
+
+            for edge in self._graph.nt_edges:
+                if edge.start == topic_node_name or edge.end == topic_node_name:
+                    # Find the node (non-topic) end of the edge
+                    if edge.start.startswith(' '):
+                        connected_nodes.add(edge.end)
+                    else:
+                        connected_nodes.add(edge.start)
+
+        return connected_nodes, connected_topics
+
+    def _update_connection_list(self):
+        """Update the connection list panel with info about the focused item."""
+        if not self._focused_item or not self._graph:
+            self._clear_connection_list()
+            return
+
+        publishers = []
+        subscribers = []
+        item_display_name = self._focused_item
+
+        if self._focused_item_type == 'topic':
+            # For a topic, show publishing and subscribing nodes
+            topic_node_name = ' ' + self._focused_item
+
+            for edge in self._graph.nt_edges:
+                if edge.end == topic_node_name:
+                    # edge.start is a publishing node
+                    publishers.append(edge.start)
+                elif edge.start == topic_node_name:
+                    # edge.end is a subscribing node
+                    subscribers.append(edge.end)
+
+            # Get topic type
+            topic_type = self._get_topic_type(self._focused_item)
+            if topic_type:
+                item_display_name = '%s\n[%s]' % (self._focused_item, topic_type)
+
+            # Update headers for topic
+            self._widget.publishers_header.setText('Publishing Nodes:')
+            self._widget.subscribers_header.setText('Subscribing Nodes:')
+
+        elif self._focused_item_type == 'node':
+            # For a node, show topics it publishes and subscribes to
+            for edge in self._graph.nt_edges:
+                if edge.start == self._focused_item:
+                    # Publishing to edge.end (topic)
+                    topic = edge.end[1:] if edge.end.startswith(' ') else edge.end
+                    topic_type = self._get_topic_type(topic)
+                    if topic_type:
+                        publishers.append('%s [%s]' % (topic, topic_type))
+                    else:
+                        publishers.append(topic)
+                elif edge.end == self._focused_item:
+                    # Subscribing to edge.start (topic)
+                    topic = edge.start[1:] if edge.start.startswith(' ') else edge.start
+                    topic_type = self._get_topic_type(topic)
+                    if topic_type:
+                        subscribers.append('%s [%s]' % (topic, topic_type))
+                    else:
+                        subscribers.append(topic)
+
+            # Update headers for node
+            self._widget.publishers_header.setText('Publishes To:')
+            self._widget.subscribers_header.setText('Subscribes To:')
+
+        # Update UI
+        self._widget.selected_item_label.setText(item_display_name)
+
+        self._widget.publishers_list.clear()
+        for pub in sorted(publishers):
+            self._widget.publishers_list.addItem(pub)
+
+        self._widget.subscribers_list.clear()
+        for sub in sorted(subscribers):
+            self._widget.subscribers_list.addItem(sub)
+
+    def _get_topic_type(self, topic_name):
+        """Get the message type for a topic."""
+        for name, types in self._node.get_topic_names_and_types():
+            if name == topic_name:
+                return types[0] if types else None
+        return None
+
+    def _clear_connection_list(self):
+        """Clear the connection list panel."""
+        self._widget.selected_item_label.setText('No selection')
+        self._widget.publishers_list.clear()
+        self._widget.subscribers_list.clear()
+        self._widget.publishers_header.setText('Publishers:')
+        self._widget.subscribers_header.setText('Subscribers:')
+
+    def _on_list_item_double_clicked(self, item):
+        """Handle double-click on connection list item to focus on it."""
+        text = item.text()
+        # Remove type annotation if present (e.g., "/topic [std_msgs/String]")
+        name = text.split(' [')[0].strip()
+
+        # Determine if it's a topic or node based on current focus type
+        if self._focused_item_type == 'node':
+            # When a node is focused, list items are topics
+            self._focused_item = name
+            self._focused_item_type = 'topic'
+        else:
+            # When a topic is focused, list items are nodes
+            self._focused_item = name
+            self._focused_item_type = 'node'
+
+        self._refresh_rosgraph()
+        self._update_connection_list()

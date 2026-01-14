@@ -1,12 +1,9 @@
 <package format="2">
-  <name>rqt_graph</name>
-  <version>1.3.1</version>
-  <description>rqt_graph provides a GUI plugin for visualizing the ROS
-      computation graph.<br />
-      Its components are made generic so that other packages
-      where you want to achieve graph representation can depend upon this pkg
-      (use <a href = "http://www.ros.org/wiki/rqt_dep">rqt_dep</a> to find out
-      the pkgs that depend. rqt_dep itself depends on rqt_graph too).
+  <name>rqt_graph_focus</name>
+  <version>1.0.0</version>
+  <description>rqt_graph_focus is a fork of rqt_graph with click-to-focus
+      and connection list features. Click on a node or topic to filter
+      the graph to show only connected elements.
   </description>
   <maintainer email="michael.jeronimo@openrobotics.org">Michael Jeronimo</maintainer>
   <maintainer email="william@openrobotics.org">William Woodall</maintainer>

@@ -35,7 +35,7 @@
 import re
 import copy
 
-from rqt_graph import rosgraph2_impl
+from rqt_graph_focus import rosgraph2_impl
 import math
 
 import pydot
