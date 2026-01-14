@@ -64,27 +64,73 @@ class InteractiveGraphicsView(QGraphicsView):
             if delta.manhattanLength() < CLICK_THRESHOLD:
                 # This was a click - find item at position
                 scene_pos = self.mapToScene(mouse_event.pos())
-                item = self.scene().itemAt(scene_pos, self.transform())
-                if item:
-                    url = self._extract_url(item)
-                    if url:
-                        self.item_clicked.emit(url)
+                url = self._find_url_at_position(scene_pos)
+                if url:
+                    self.item_clicked.emit(url)
 
         self.setCursor(Qt.OpenHandCursor)
         self._last_pan_point = None
         self._press_pos = None
 
-    def _extract_url(self, item):
-        """Extract URL from graphics item or its parent."""
+    def _find_url_at_position(self, scene_pos):
+        """Find URL from any item at the given scene position."""
+        scene = self.scene()
+        if not scene:
+            return None
+
+        # Get all items at this position
+        items = scene.items(scene_pos)
+
+        # Search through all items and their parents for a URL
+        for item in items:
+            url = self._extract_url_from_item(item)
+            if url:
+                return url
+        return None
+
+    def _extract_url_from_item(self, item):
+        """Extract URL from a graphics item or its parents."""
         current = item
-        while current:
-            # Try toolTip first (qt_dotgraph often stores URL there)
+        visited = set()
+
+        while current and id(current) not in visited:
+            visited.add(id(current))
+
+            # Try toolTip (qt_dotgraph stores URL there)
             tooltip = current.toolTip()
-            if tooltip and ('/' in tooltip or ':' in tooltip):
-                return tooltip
+            if tooltip and self._is_valid_url(tooltip):
+                return self._clean_url(tooltip)
+
+            # Try data role (some implementations store URL in data)
+            try:
+                data = current.data(0)
+                if data and isinstance(data, str) and self._is_valid_url(data):
+                    return self._clean_url(data)
+            except (TypeError, AttributeError):
+                pass
+
             # Try parent item
             current = current.parentItem()
+
         return None
+
+    def _clean_url(self, text):
+        """Clean URL by removing surrounding quotes."""
+        return text.strip('"\'') if text else text
+
+    def _is_valid_url(self, text):
+        """Check if text looks like a valid node/topic URL."""
+        if not text:
+            return False
+        # Node URLs start with '/' or topic URLs start with 'topic:'
+        # Exclude multi-line tooltips (e.g. formatted node info)
+        # but allow HTML-formatted tooltips (which use <br/> not \n)
+        if '\n' in text:
+            return False
+        # Check for valid URL patterns
+        # Strip any surrounding quotes that pydot might add
+        clean_text = text.strip('"\'')
+        return clean_text.startswith('/') or clean_text.startswith('topic:')
 
     def mouseMoveEvent(self, mouse_event):
         if self._last_pan_point is not None:

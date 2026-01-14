@@ -269,7 +269,8 @@ class RosGraphDotcodeGenerator:
     def _add_node(self, node, rosgraphinst, dotcode_factory, dotgraph, unreachable):
         # Check if this node is selected
         is_selected = (self._selected_item == node and self._selected_item_type == 'node')
-        selected_attrs = {'penwidth': 3, 'color': 'blue'} if is_selected else {}
+        selected_color = 'blue' if is_selected else None
+        selected_penwidth = 3 if is_selected else None
 
         if node in rosgraphinst.bad_nodes:
             if unreachable:
@@ -282,8 +283,7 @@ class RosGraphDotcodeGenerator:
                     nodelabel=node,
                     shape="ellipse",
                     url=node + " (DEAD)",
-                    color=selected_attrs.get('color', 'red'),
-                    penwidth=selected_attrs.get('penwidth', 1))
+                    color=selected_color if selected_color else 'red')
             elif bn.type == rosgraph2_impl.BadNode.WONKY:
                 dotcode_factory.add_node_to_graph(
                     dotgraph,
@@ -291,8 +291,7 @@ class RosGraphDotcodeGenerator:
                     nodelabel=node,
                     shape="ellipse",
                     url=node + " (WONKY)",
-                    color=selected_attrs.get('color', 'orange'),
-                    penwidth=selected_attrs.get('penwidth', 1))
+                    color=selected_color if selected_color else 'orange')
             else:
                 dotcode_factory.add_node_to_graph(
                     dotgraph,
@@ -300,8 +299,7 @@ class RosGraphDotcodeGenerator:
                     nodelabel=node,
                     shape="ellipse",
                     url=node + " (UNKNOWN)",
-                    color=selected_attrs.get('color', 'red'),
-                    penwidth=selected_attrs.get('penwidth', 1))
+                    color=selected_color if selected_color else 'red')
         else:
             dotcode_factory.add_node_to_graph(
                 dotgraph,
@@ -309,7 +307,13 @@ class RosGraphDotcodeGenerator:
                 nodelabel=node,
                 shape='ellipse',
                 url=node,
-                **selected_attrs)
+                color=selected_color)
+
+        # Set penwidth directly on the node (not supported as add_node_to_graph parameter)
+        if selected_penwidth:
+            pydot_node = dotgraph.get_node(_conv(node))
+            if pydot_node:
+                pydot_node[0].set_penwidth(selected_penwidth)
 
     def _add_topic_node(self, node, rosgraphinst, dotcode_factory, dotgraph, quiet):
         label = rosgraph2_impl.node_topic(node)
@@ -341,8 +345,13 @@ class RosGraphDotcodeGenerator:
             shape='box',
             url="topic:%s" % label,
             color=color,
-            penwidth=penwidth,
             tooltip=tooltip)
+
+        # Set penwidth directly on the node (not supported as add_node_to_graph parameter)
+        if penwidth:
+            pydot_node = dotgraph.get_node(_conv(node))
+            if pydot_node:
+                pydot_node[0].set_penwidth(penwidth)
 
     def _add_topic_node_group(self, node, dotcode_factory, dotgraph, quiet):
         label = rosgraph2_impl.node_topic(node)
