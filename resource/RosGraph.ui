@@ -424,6 +424,32 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QLabel" name="echo_header">
+         <property name="text">
+          <string>Topic Echo:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPlainTextEdit" name="echo_text">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="maximumBlockCount">
+          <number>100</number>
+         </property>
+         <property name="placeholderText">
+          <string>Select a topic to see messages...</string>
+         </property>
+         <property name="font">
+          <font>
+           <family>Monospace</family>
+           <pointsize>8</pointsize>
+          </font>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </widget>

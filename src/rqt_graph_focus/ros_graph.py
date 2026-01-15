@@ -33,6 +33,8 @@ import os
 import re
 
 from ament_index_python import get_resource
+from rosidl_runtime_py.utilities import get_message
+from rosidl_runtime_py import message_to_yaml
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import QAbstractListModel, QFile, QIODevice, Qt, Signal
 from python_qt_binding.QtGui import QIcon, QImage, QPainter
@@ -121,6 +123,10 @@ class RosGraph(Plugin):
         # Focus state for click-to-focus feature
         self._focused_item = None       # Name of focused element
         self._focused_item_type = None  # 'node' or 'topic'
+
+        # Topic echo state
+        self._echo_subscription = None  # Current topic subscription
+        self._echo_topic_name = None    # Name of subscribed topic
 
         self._widget = QWidget()
 
@@ -510,6 +516,12 @@ class RosGraph(Plugin):
         self._refresh_rosgraph()
         self._update_connection_list()
 
+        # Subscribe to topic echo if a topic was clicked
+        if self._focused_item_type == 'topic':
+            self._subscribe_to_topic(self._focused_item)
+        else:
+            self._clear_echo()
+
     def _clear_focus(self):
         """Clear the focus filter and show full graph."""
         self._focused_item = None
@@ -517,6 +529,7 @@ class RosGraph(Plugin):
         self._widget.clear_focus_button.setEnabled(False)
         self._refresh_rosgraph()
         self._clear_connection_list()
+        self._clear_echo()
 
     def _get_connected_elements(self, item_name, item_type):
         """Get all nodes and topics directly connected to the given item.
@@ -700,3 +713,77 @@ class RosGraph(Plugin):
 
         self._refresh_rosgraph()
         self._update_connection_list()
+
+        # Update topic echo subscription
+        if self._focused_item_type == 'topic':
+            self._subscribe_to_topic(self._focused_item)
+        else:
+            self._clear_echo()
+
+    def _subscribe_to_topic(self, topic_name):
+        """Subscribe to a topic and echo messages to the echo panel."""
+        # Unsubscribe from previous topic if any
+        self._unsubscribe_from_topic()
+
+        # Get topic type
+        topic_type_str = self._get_topic_type(topic_name)
+        if not topic_type_str:
+            self._logger.warning(f'Could not get type for topic: {topic_name}')
+            self._widget.echo_text.setPlainText(f'Could not get type for topic: {topic_name}')
+            return
+
+        try:
+            # Convert type string (e.g., "std_msgs/msg/String") to message class
+            msg_class = get_message(topic_type_str)
+        except Exception as e:
+            self._logger.error(f'Failed to get message class for {topic_type_str}: {e}')
+            self._widget.echo_text.setPlainText(f'Failed to load message type: {topic_type_str}')
+            return
+
+        # Create subscription
+        try:
+            self._echo_subscription = self._node.create_subscription(
+                msg_class,
+                topic_name,
+                self._on_topic_message,
+                10  # QoS depth
+            )
+            self._echo_topic_name = topic_name
+            self._widget.echo_header.setText(f'Topic Echo: {topic_name}')
+            self._widget.echo_text.clear()
+            self._logger.info(f'Subscribed to topic: {topic_name} [{topic_type_str}]')
+        except Exception as e:
+            self._logger.error(f'Failed to subscribe to {topic_name}: {e}')
+            self._widget.echo_text.setPlainText(f'Failed to subscribe: {e}')
+
+    def _unsubscribe_from_topic(self):
+        """Unsubscribe from the current topic."""
+        if self._echo_subscription is not None:
+            try:
+                self._node.destroy_subscription(self._echo_subscription)
+                self._logger.info(f'Unsubscribed from topic: {self._echo_topic_name}')
+            except Exception as e:
+                self._logger.error(f'Failed to destroy subscription: {e}')
+            self._echo_subscription = None
+            self._echo_topic_name = None
+
+    def _on_topic_message(self, msg):
+        """Callback for received topic messages."""
+        try:
+            # Convert message to YAML for display
+            msg_yaml = message_to_yaml(msg)
+            # Append to echo panel with separator
+            current_text = self._widget.echo_text.toPlainText()
+            separator = '---\n' if current_text else ''
+            self._widget.echo_text.appendPlainText(separator + msg_yaml)
+            # Auto-scroll to bottom
+            scrollbar = self._widget.echo_text.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
+        except Exception as e:
+            self._logger.error(f'Failed to display message: {e}')
+
+    def _clear_echo(self):
+        """Clear the echo panel and unsubscribe."""
+        self._unsubscribe_from_topic()
+        self._widget.echo_header.setText('Topic Echo:')
+        self._widget.echo_text.clear()
