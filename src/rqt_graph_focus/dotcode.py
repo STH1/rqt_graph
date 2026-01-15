@@ -74,18 +74,31 @@ def _conv(n):
 def matches_any(name, patternlist, debug=False):
     if patternlist is None or len(patternlist) == 0:
         return False
+    name_stripped = unicode(name).strip()
     for pattern in patternlist:
         # Check exact match first
-        if unicode(name).strip() == pattern:
+        if name_stripped == pattern:
             if debug:
                 _logger.debug(f'matches_any: "{name}" exact match with "{pattern}"')
             return True
-        # Check if pattern contains regex special chars
-        if re.match("^[a-zA-Z0-9_/]+$", pattern) is None:
+        # Check if pattern contains regex special chars (excluding common ones like ^$)
+        if re.match("^[a-zA-Z0-9_/^$]+$", pattern) is None:
             # Pattern has special chars, use regex
-            if re.match(unicode(pattern), name.strip()) is not None:
+            if re.match(unicode(pattern), name_stripped) is not None:
                 if debug:
                     _logger.debug(f'matches_any: "{name}" regex match with "{pattern}"')
+                return True
+        else:
+            # Simple pattern - do substring matching
+            # But if pattern starts with ^ or ends with $ treat as regex anchor
+            if pattern.startswith('^') or pattern.endswith('$'):
+                if re.match(unicode(pattern), name_stripped) is not None:
+                    if debug:
+                        _logger.debug(f'matches_any: "{name}" anchored regex match with "{pattern}"')
+                    return True
+            elif pattern in name_stripped:
+                if debug:
+                    _logger.debug(f'matches_any: "{name}" substring match with "{pattern}"')
                 return True
     return False
 
@@ -897,14 +910,22 @@ class RosGraphDotcodeGenerator:
                 self._add_topic_node_group(
                     'n' + n, dotcode_factory=dotcode_factory, dotgraph=dotgraph, quiet=quiet)
 
+        # Create set of filtered nodes for efficient lookup (used by tf, action, image filtering)
+        nn_nodes_set = set(nn_nodes) if nn_nodes else set()
+
         if tf_connections is not None:
-            # render tf nodes as a single node
-            self._add_topic_node_group(
-                'n/tf', dotcode_factory=dotcode_factory, dotgraph=dotgraph, quiet=quiet)
-            for out_edge in tf_connections.get('outgoing', []):
-                dotcode_factory.add_edge_to_graph(dotgraph, _conv('n/tf'), _conv(out_edge.end))
-            for in_edge in tf_connections.get('incoming', []):
-                dotcode_factory.add_edge_to_graph(dotgraph, _conv(in_edge.start), _conv('n/tf'))
+            # Filter tf connections to only include nodes that passed the filter
+            filtered_out_edges = [e for e in tf_connections.get('outgoing', []) if e.end in nn_nodes_set]
+            filtered_in_edges = [e for e in tf_connections.get('incoming', []) if e.start in nn_nodes_set]
+
+            # Only render tf group node if there are filtered connections
+            if filtered_out_edges or filtered_in_edges:
+                self._add_topic_node_group(
+                    'n/tf', dotcode_factory=dotcode_factory, dotgraph=dotgraph, quiet=quiet)
+                for out_edge in filtered_out_edges:
+                    dotcode_factory.add_edge_to_graph(dotgraph, _conv('n/tf'), _conv(out_edge.end))
+                for in_edge in filtered_in_edges:
+                    dotcode_factory.add_edge_to_graph(dotgraph, _conv(in_edge.start), _conv('n/tf'))
 
         # for ROS node, if we have created a namespace clusters for
         # one of its peer topics, drop it into that cluster
@@ -935,23 +956,29 @@ class RosGraphDotcodeGenerator:
                 e, dotcode_factory, dotgraph=dotgraph, is_topic=(graph_mode == NODE_NODE_GRAPH))
 
         for (action_prefix, node_connections) in action_nodes.items():
-            for out_edge in node_connections.get('outgoing', []):
+            # Filter to only include edges to/from nodes that passed the filter
+            filtered_out = [e for e in node_connections.get('outgoing', []) if e.end in nn_nodes_set]
+            filtered_in = [e for e in node_connections.get('incoming', []) if e.start in nn_nodes_set]
+            for out_edge in filtered_out:
                 dotcode_factory.add_edge_to_graph(
                     dotgraph,
                     _conv('n' + action_prefix + ACTION_TOPICS_SUFFIX),
                     _conv(out_edge.end))
-            for in_edge in node_connections.get('incoming', []):
+            for in_edge in filtered_in:
                 dotcode_factory.add_edge_to_graph(
                     dotgraph,
                     _conv(in_edge.start),
                     _conv('n' + action_prefix + ACTION_TOPICS_SUFFIX))
         for (image_prefix, node_connections) in image_nodes.items():
-            for out_edge in node_connections.get('outgoing', []):
+            # Filter to only include edges to/from nodes that passed the filter
+            filtered_out = [e for e in node_connections.get('outgoing', []) if e.end in nn_nodes_set]
+            filtered_in = [e for e in node_connections.get('incoming', []) if e.start in nn_nodes_set]
+            for out_edge in filtered_out:
                 dotcode_factory.add_edge_to_graph(
                     dotgraph,
                     _conv('n' + image_prefix + IMAGE_TOPICS_SUFFIX),
                     _conv(out_edge.end))
-            for in_edge in node_connections.get('incoming', []):
+            for in_edge in filtered_in:
                 dotcode_factory.add_edge_to_graph(
                     dotgraph,
                     _conv(in_edge.start),
