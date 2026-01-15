@@ -16,9 +16,21 @@
   <property name="windowTitle">
    <string>Node Graph</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
+   <property name="spacing">
+    <number>2</number>
+   </property>
+   <property name="topMargin">
+    <number>2</number>
+   </property>
+   <property name="bottomMargin">
+    <number>2</number>
+   </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0,0,0">
+     <property name="spacing">
+      <number>4</number>
+     </property>
      <item>
       <widget class="QPushButton" name="refresh_graph_push_button">
        <property name="toolTip">
@@ -35,7 +47,7 @@
      <item>
       <widget class="QComboBox" name="graph_type_combo_box">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -48,7 +60,10 @@
      <item>
       <widget class="QLineEdit" name="filter_line_edit">
        <property name="toolTip">
-        <string>Namespace filter, comma separated list of names/regexp to include or exclude. Example: -/rqt.*</string>
+        <string>Namespace filter</string>
+       </property>
+       <property name="placeholderText">
+        <string>Node filter...</string>
        </property>
        <property name="text">
         <string notr="true">/</string>
@@ -58,27 +73,24 @@
      <item>
       <widget class="QLineEdit" name="topic_filter_line_edit">
        <property name="toolTip">
-        <string>Topic filter, comma separated list of names/regexp to include or exclude. Example: -/tf</string>
+        <string>Topic filter</string>
+       </property>
+       <property name="placeholderText">
+        <string>Topic filter...</string>
        </property>
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer">
+      <widget class="Line" name="line_1">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Vertical</enum>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="load_dot_push_button">
        <property name="toolTip">
-        <string>Load DOT graph from file</string>
+        <string>Load DOT</string>
        </property>
        <property name="iconSize">
         <size>
@@ -91,7 +103,7 @@
      <item>
       <widget class="QPushButton" name="save_dot_push_button">
        <property name="toolTip">
-        <string>Save as DOT graph</string>
+        <string>Save DOT</string>
        </property>
        <property name="iconSize">
         <size>
@@ -104,7 +116,7 @@
      <item>
       <widget class="QPushButton" name="save_as_svg_push_button">
        <property name="toolTip">
-        <string>Save as SVG</string>
+        <string>Save SVG</string>
        </property>
        <property name="iconSize">
         <size>
@@ -117,7 +129,7 @@
      <item>
       <widget class="QPushButton" name="save_as_image_push_button">
        <property name="toolTip">
-        <string>Save as image</string>
+        <string>Save Image</string>
        </property>
        <property name="iconSize">
         <size>
@@ -130,266 +142,191 @@
     </layout>
    </item>
    <item>
-    <widget class="QWidget" name="widget" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout_4">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QWidget" name="widget" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_4a">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Group:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="namespace_cluster_spin_box">
-           <property name="toolTip">
-            <string>Show namespace boxes, nesting up to this amount</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Namespaces</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="actionlib_check_box">
-           <property name="toolTip">
-            <string>Summarize action topics into one virtual topic node (named &lt;action_server&gt;/action_topics)</string>
-           </property>
-           <property name="text">
-            <string>Actions</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="group_tf_check_box">
-           <property name="toolTip">
-            <string>Summarize tf and tf2 topics into one virtual topic node (named /tf)</string>
-           </property>
-           <property name="text">
-            <string>tf</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="group_image_check_box">
-           <property name="toolTip">
-            <string>Summarize image topics into one virtual topic node (named &lt;image_server&gt;/image_topics)</string>
-           </property>
-           <property name="text">
-            <string>Images</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="Line" name="line">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="highlight_connections_check_box">
-        <property name="toolTip">
-         <string>Highlight incoming and outgoing connections on mouse over</string>
-        </property>
-        <property name="text">
-         <string>Highlight</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="auto_fit_graph_check_box">
-        <property name="toolTip">
-         <string>Automatically fit graph into view on update</string>
-        </property>
-        <property name="text">
-         <string>Fit</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="fit_in_view_push_button">
-        <property name="toolTip">
-         <string>Fit graph in view</string>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>16</width>
-          <height>16</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QWidget" name="widget" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout_5">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QWidget" name="widget" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_5a" stretch="0,0,0,0,0,0,0,0">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Hide:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="dead_sinks_check_box">
-           <property name="toolTip">
-            <string>Hide topics without subscribers</string>
-           </property>
-           <property name="text">
-            <string>Dead sinks</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="leaf_topics_check_box">
-           <property name="toolTip">
-            <string>Hide topics with one connection only (implicates dead sinks)</string>
-           </property>
-           <property name="text">
-            <string>Leaf topics</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="quiet_check_box">
-           <property name="toolTip">
-            <string>Hide common debugging nodes</string>
-           </property>
-           <property name="text">
-            <string>Debug</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="hide_tf_nodes_check_box">
-           <property name="toolTip">
-            <string>Hide tf nodes</string>
-           </property>
-           <property name="text">
-            <string>tf</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="unreachable_check_box">
-           <property name="toolTip">
-            <string>Hide unreachable nodes</string>
-           </property>
-           <property name="text">
-            <string>Unreachable</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="hide_dynamic_reconfigure_check_box">
-           <property name="toolTip">
-            <string>Hide dynamic reconfigure's parameter topics</string>
-           </property>
-           <property name="text">
-            <string>Params</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </widget>
-      </item>
-     </layout>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_options">
+     <property name="spacing">
+      <number>8</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="label_group">
+       <property name="text">
+        <string>Group:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="namespace_cluster_spin_box">
+       <property name="toolTip">
+        <string>Namespace nesting level</string>
+       </property>
+       <property name="maximumWidth">
+        <number>50</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="actionlib_check_box">
+       <property name="toolTip">
+        <string>Group action topics</string>
+       </property>
+       <property name="text">
+        <string>Actions</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="group_tf_check_box">
+       <property name="toolTip">
+        <string>Group tf topics</string>
+       </property>
+       <property name="text">
+        <string>tf</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="group_image_check_box">
+       <property name="toolTip">
+        <string>Group image topics</string>
+       </property>
+       <property name="text">
+        <string>Img</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_hide">
+       <property name="text">
+        <string>Hide:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="dead_sinks_check_box">
+       <property name="toolTip">
+        <string>Hide topics without subscribers</string>
+       </property>
+       <property name="text">
+        <string>Sinks</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="leaf_topics_check_box">
+       <property name="toolTip">
+        <string>Hide leaf topics</string>
+       </property>
+       <property name="text">
+        <string>Leaf</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="quiet_check_box">
+       <property name="toolTip">
+        <string>Hide debug nodes</string>
+       </property>
+       <property name="text">
+        <string>Debug</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="hide_tf_nodes_check_box">
+       <property name="toolTip">
+        <string>Hide tf nodes</string>
+       </property>
+       <property name="text">
+        <string>tf</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="unreachable_check_box">
+       <property name="toolTip">
+        <string>Hide unreachable</string>
+       </property>
+       <property name="text">
+        <string>Unreach</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="hide_dynamic_reconfigure_check_box">
+       <property name="toolTip">
+        <string>Hide param topics</string>
+       </property>
+       <property name="text">
+        <string>Params</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line_3">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="highlight_connections_check_box">
+       <property name="toolTip">
+        <string>Highlight connections on hover</string>
+       </property>
+       <property name="text">
+        <string>Highlight</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="auto_fit_graph_check_box">
+       <property name="toolTip">
+        <string>Auto-fit on update</string>
+       </property>
+       <property name="text">
+        <string>Fit</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="fit_in_view_push_button">
+       <property name="toolTip">
+        <string>Fit in view</string>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QSplitter" name="main_splitter">
@@ -407,17 +344,32 @@
      <widget class="QWidget" name="connection_panel">
       <property name="minimumSize">
        <size>
-        <width>200</width>
+        <width>180</width>
         <height>0</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>400</width>
+        <width>350</width>
         <height>16777215</height>
        </size>
       </property>
       <layout class="QVBoxLayout" name="connection_panel_layout">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <property name="leftMargin">
+        <number>4</number>
+       </property>
+       <property name="topMargin">
+        <number>4</number>
+       </property>
+       <property name="rightMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>4</number>
+       </property>
        <item>
         <widget class="QLabel" name="selected_item_label">
          <property name="text">
