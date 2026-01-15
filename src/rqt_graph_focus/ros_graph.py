@@ -38,7 +38,7 @@ from rosidl_runtime_py import message_to_yaml
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import QAbstractListModel, QFile, QIODevice, Qt, Signal
 from python_qt_binding.QtGui import QIcon, QImage, QPainter
-from python_qt_binding.QtWidgets import QCompleter, QFileDialog, QGraphicsScene, QWidget
+from python_qt_binding.QtWidgets import QApplication, QCompleter, QFileDialog, QGraphicsScene, QWidget
 from python_qt_binding.QtSvg import QSvgGenerator
 
 from rqt_graph_focus.rosgraph2_impl import Graph
@@ -293,7 +293,20 @@ class RosGraph(Plugin):
         self.initialized = True
         self._refresh_rosgraph()
 
+    def _show_progress(self, value):
+        """Show progress bar with given value (0-100). Hide when value is 0 or 100."""
+        if value <= 0 or value >= 100:
+            self._widget.progress_bar.setVisible(False)
+            self._widget.progress_bar.setValue(0)
+        else:
+            self._widget.progress_bar.setVisible(True)
+            self._widget.progress_bar.setValue(value)
+        QApplication.processEvents()
+
     def _update_rosgraph(self):
+        # Show progress bar
+        self._show_progress(10)
+
         # re-enable controls customizing fetched ROS graph
         self._widget.graph_type_combo_box.setEnabled(True)
         self._widget.filter_line_edit.setEnabled(True)
@@ -309,9 +322,14 @@ class RosGraph(Plugin):
         self._widget.group_image_check_box.setEnabled(True)
         self._widget.hide_dynamic_reconfigure_check_box.setEnabled(True)
 
+        self._show_progress(20)
+
         self._graph = Graph(self._node)
         self._graph.set_node_stale(5.0)
         self._graph.update()
+
+        self._show_progress(40)
+
         self.node_completionmodel.refresh(self._graph.nn_nodes)
         self.topic_completionmodel.refresh(self._graph.nt_nodes)
         self._refresh_rosgraph()
@@ -319,7 +337,11 @@ class RosGraph(Plugin):
     def _refresh_rosgraph(self):
         if not self.initialized:
             return
-        self._update_graph_view(self._generate_dotcode())
+        self._show_progress(50)
+        dotcode = self._generate_dotcode()
+        self._show_progress(70)
+        self._update_graph_view(dotcode)
+        self._show_progress(100)
 
     def _generate_dotcode(self):
         ns_filter = self._widget.filter_line_edit.text()
@@ -379,7 +401,9 @@ class RosGraph(Plugin):
         if dotcode == self._current_dotcode:
             return
         self._current_dotcode = dotcode
+        self._show_progress(80)
         self._redraw_graph_view()
+        self._show_progress(95)
 
     def _generate_tool_tip(self, url):
         if url is not None and ':' in url:
