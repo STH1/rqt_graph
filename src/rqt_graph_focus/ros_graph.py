@@ -182,7 +182,6 @@ class RosGraph(Plugin):
         self._widget.quiet_check_box.clicked.connect(self._refresh_rosgraph)
         self._widget.unreachable_check_box.clicked.connect(self._refresh_rosgraph)
         self._widget.group_tf_check_box.clicked.connect(self._refresh_rosgraph)
-        self._widget.hide_tf_nodes_check_box.clicked.connect(self._refresh_rosgraph)
         self._widget.group_image_check_box.clicked.connect(self._refresh_rosgraph)
 
         self._widget.refresh_graph_push_button.setIcon(QIcon.fromTheme('view-refresh'))
@@ -246,8 +245,6 @@ class RosGraph(Plugin):
         instance_settings.set_value(
             'group_tf_check_box_state', self._widget.group_tf_check_box.isChecked())
         instance_settings.set_value(
-            'hide_tf_nodes_check_box_state', self._widget.hide_tf_nodes_check_box.isChecked())
-        instance_settings.set_value(
             'group_image_check_box_state', self._widget.group_image_check_box.isChecked())
         instance_settings.set_value(
             'hide_dynamic_reconfigure_check_box_state',
@@ -278,8 +275,6 @@ class RosGraph(Plugin):
         self._widget.highlight_connections_check_box.setChecked(
             instance_settings.value('highlight_connections_check_box_state', True) in
             [True, 'true'])
-        self._widget.hide_tf_nodes_check_box.setChecked(
-            instance_settings.value('hide_tf_nodes_check_box_state', False) in [True, 'true'])
         self._widget.group_tf_check_box.setChecked(
             instance_settings.value('group_tf_check_box_state', True) in [True, 'true'])
         self._widget.group_image_check_box.setChecked(
@@ -318,7 +313,6 @@ class RosGraph(Plugin):
         self._widget.quiet_check_box.setEnabled(True)
         self._widget.unreachable_check_box.setEnabled(True)
         self._widget.group_tf_check_box.setEnabled(True)
-        self._widget.hide_tf_nodes_check_box.setEnabled(True)
         self._widget.group_image_check_box.setEnabled(True)
         self._widget.hide_dynamic_reconfigure_check_box.setEnabled(True)
 
@@ -373,7 +367,6 @@ class RosGraph(Plugin):
         quiet = self._widget.quiet_check_box.isChecked()
         unreachable = self._widget.unreachable_check_box.isChecked()
         group_tf_nodes = self._widget.group_tf_check_box.isChecked()
-        hide_tf_nodes = self._widget.hide_tf_nodes_check_box.isChecked()
         group_image_nodes = self._widget.group_image_check_box.isChecked()
         hide_dynamic_reconfigure = self._widget.hide_dynamic_reconfigure_check_box.isChecked()
 
@@ -391,7 +384,6 @@ class RosGraph(Plugin):
             quiet=quiet,
             unreachable=unreachable,
             group_tf_nodes=group_tf_nodes,
-            hide_tf_nodes=hide_tf_nodes,
             group_image_nodes=group_image_nodes,
             hide_dynamic_reconfigure=hide_dynamic_reconfigure,
             selected_item=self._focused_item,
@@ -466,7 +458,6 @@ class RosGraph(Plugin):
         self._widget.quiet_check_box.setEnabled(False)
         self._widget.unreachable_check_box.setEnabled(False)
         self._widget.group_tf_check_box.setEnabled(False)
-        self._widget.hide_tf_nodes_check_box.setEnabled(False)
         self._widget.group_image_check_box.setEnabled(False)
         self._widget.hide_dynamic_reconfigure_check_box.setEnabled(False)
 

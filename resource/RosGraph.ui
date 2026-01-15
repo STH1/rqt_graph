@@ -238,16 +238,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="hide_tf_nodes_check_box">
-       <property name="toolTip">
-        <string>Hide tf nodes</string>
-       </property>
-       <property name="text">
-        <string>tf</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QCheckBox" name="unreachable_check_box">
        <property name="toolTip">
         <string>Hide unreachable</string>

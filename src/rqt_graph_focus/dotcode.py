@@ -692,9 +692,8 @@ class RosGraphDotcodeGenerator:
         nodes_in,
         edges_in,
         node_connections,
-        hide_tf_nodes,
-            hide_dynamic_reconfigure):
-        if not hide_tf_nodes and not hide_dynamic_reconfigure:
+        hide_dynamic_reconfigure):
+        if not hide_dynamic_reconfigure:
             return nodes_in, edges_in
         # do not manipulate incoming structures
         nodes = copy.copy(nodes_in)
@@ -724,13 +723,6 @@ class RosGraphDotcodeGenerator:
                                         edges.remove(e)
                             removal_nodes.append(n1)
                         continue
-            if hide_tf_nodes and unicode(n).strip() in ['/tf', '/tf_static']:
-                if n in node_connections:
-                    for e in node_connections[n].outgoing + node_connections[n].incoming:
-                        if e in edges:
-                            edges.remove(e)
-                removal_nodes.append(n)
-                continue
         for n in removal_nodes:
             if n in nodes:
                 nodes.remove(n)
@@ -755,7 +747,6 @@ class RosGraphDotcodeGenerator:
         quiet=False,
         unreachable=False,
         group_tf_nodes=False,
-        hide_tf_nodes=False,
         group_image_nodes=False,
         hide_dynamic_reconfigure=False,
         selected_item=None,
@@ -800,7 +791,7 @@ class RosGraphDotcodeGenerator:
 
         if (hide_single_connection_topics or
             hide_dead_end_topics or accumulate_actions or
-            group_tf_nodes or hide_tf_nodes or
+            group_tf_nodes or
             group_image_nodes or hide_dynamic_reconfigure):
             # maps outgoing and incoming edges to nodes
             node_connections = self._get_node_edge_map(edges)
@@ -816,7 +807,6 @@ class RosGraphDotcodeGenerator:
                 nt_nodes,
                 edges,
                 node_connections,
-                hide_tf_nodes,
                 hide_dynamic_reconfigure)
 
             if graph_mode != NODE_NODE_GRAPH:
@@ -826,7 +816,7 @@ class RosGraphDotcodeGenerator:
                 if group_image_nodes:
                     nt_nodes, edges, image_nodes = self._accumulate_image_topics(
                         nt_nodes, edges, node_connections)
-                if group_tf_nodes and not hide_tf_nodes:
+                if group_tf_nodes:
                     nt_nodes, edges, tf_connections = self._group_tf_nodes(
                         nt_nodes, edges, node_connections)
 
@@ -1004,7 +994,6 @@ class RosGraphDotcodeGenerator:
         simplify=False,  # do not remove double edges
         quiet=False,
         unreachable=False,
-        hide_tf_nodes=False,
         group_tf_nodes=False,
         group_image_nodes=False,
         hide_dynamic_reconfigure=False,
@@ -1047,7 +1036,6 @@ class RosGraphDotcodeGenerator:
             simplify=simplify,
             quiet=quiet,
             unreachable=unreachable,
-            hide_tf_nodes=hide_tf_nodes,
             group_tf_nodes=group_tf_nodes,
             group_image_nodes=group_image_nodes,
             hide_dynamic_reconfigure=hide_dynamic_reconfigure,
