@@ -108,6 +108,7 @@ class NamespaceCompletionModel(QAbstractListModel):
 class RosGraph(Plugin):
 
     _deferred_fit_in_view = Signal()
+    _echo_message_received = Signal(str)  # Signal to safely update echo panel from ROS callback
 
     def __init__(self, context):
         super(RosGraph, self).__init__(context)
@@ -215,6 +216,9 @@ class RosGraph(Plugin):
         self._update_rosgraph()
         self._deferred_fit_in_view.connect(self._fit_in_view, Qt.QueuedConnection)
         self._deferred_fit_in_view.emit()
+
+        # Connect echo signal for thread-safe UI updates
+        self._echo_message_received.connect(self._update_echo_display, Qt.QueuedConnection)
 
         context.add_widget(self._widget)
         self._logger.info('RosGraph plugin ready')
@@ -783,10 +787,18 @@ class RosGraph(Plugin):
             self._echo_topic_name = None
 
     def _on_topic_message(self, msg):
-        """Callback for received topic messages."""
+        """Callback for received topic messages. Runs in ROS thread."""
         try:
             # Convert message to YAML for display
             msg_yaml = message_to_yaml(msg)
+            # Emit signal to update UI in main thread (thread-safe)
+            self._echo_message_received.emit(msg_yaml)
+        except Exception as e:
+            self._logger.error(f'Failed to convert message: {e}')
+
+    def _update_echo_display(self, msg_yaml):
+        """Update echo panel with message. Runs in Qt main thread."""
+        try:
             # Append to echo panel with separator
             current_text = self._widget.echo_text.toPlainText()
             separator = '---\n' if current_text else ''
